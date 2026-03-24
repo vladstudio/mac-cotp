@@ -8,9 +8,18 @@ enum OTPParser {
         "passcode", "factor",
     ]
 
-    private static let numericPattern = try! NSRegularExpression(pattern: #"\b(\d{4,8})\b"#)
-    private static let splitPattern = try! NSRegularExpression(pattern: #"\b(\d{3,4})[- ](\d{3,4})\b"#)
-    private static let alphaPattern = try! NSRegularExpression(pattern: #"\b([A-Z]{4,8})\b"#)
+    // Digit patterns — ordered most common first
+    private static let digitPatterns = [
+        try! NSRegularExpression(pattern: #"\b\d{4,8}\b"#),                         // 123456
+        try! NSRegularExpression(pattern: #"\b\d{2,4}[- ]\d{2,4}\b"#),             // 123 456, 123-456
+        try! NSRegularExpression(pattern: #"\b\d{2,3}[- ]\d{2,3}[- ]\d{2,3}\b"#), // 12-34-56, 12 34 56
+    ]
+
+    // Alpha patterns
+    private static let alphaPatterns = [
+        try! NSRegularExpression(pattern: #"\b[A-Z]{4,8}\b"#),                      // FYOIQ
+        try! NSRegularExpression(pattern: #"\b[A-Z]{2,4}[- ][A-Z]{2,4}\b"#),       // FYO-IQ
+    ]
 
     static func detect(in text: String) -> String? {
         let lower = text.lowercased()
@@ -18,28 +27,32 @@ enum OTPParser {
 
         let range = NSRange(text.startIndex..., in: text)
 
-        // 4-8 digit code: "123456"
-        if let code = firstValid(numericPattern, in: text, range: range) { return code }
-
-        // Split code: "123-456" or "123 456"
-        if let match = splitPattern.firstMatch(in: text, range: range),
-           let r1 = Range(match.range(at: 1), in: text),
-           let r2 = Range(match.range(at: 2), in: text) {
-            let combined = String(text[r1]) + String(text[r2])
-            if !isFalsePositive(combined) { return combined }
+        for pattern in digitPatterns {
+            if let code = firstValid(pattern, in: text, range: range, keep: \.isWholeNumber) {
+                return code
+            }
         }
 
-        // Uppercase alpha code: "FYOIQ"
-        if let code = firstValid(alphaPattern, in: text, range: range) { return code }
+        for pattern in alphaPatterns {
+            if let code = firstValid(pattern, in: text, range: range, keep: \.isLetter) {
+                return code
+            }
+        }
 
         return nil
     }
 
-    private static func firstValid(_ regex: NSRegularExpression, in text: String, range: NSRange) -> String? {
+    private static func firstValid(
+        _ regex: NSRegularExpression,
+        in text: String,
+        range: NSRange,
+        keep: KeyPath<Character, Bool>
+    ) -> String? {
         for match in regex.matches(in: text, range: range) {
-            guard let r = Range(match.range(at: 1), in: text) else { continue }
-            let code = String(text[r])
-            if !isFalsePositive(code) { return code }
+            guard let r = Range(match.range, in: text) else { continue }
+            let code = String(text[r].filter { $0[keyPath: keep] })
+            guard (4...8).contains(code.count), !isFalsePositive(code) else { continue }
+            return code
         }
         return nil
     }
