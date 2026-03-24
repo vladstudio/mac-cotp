@@ -16,7 +16,7 @@ final class NotificationWatcher {
         guard let nc = NSWorkspace.shared.runningApplications.first(where: {
             $0.bundleIdentifier == "com.apple.notificationcenterui"
         }) else {
-            print("[COTP] NotificationCenter process not found")
+            NSLog("[COTP] NotificationCenter process not found")
             return
         }
 
@@ -28,19 +28,24 @@ final class NotificationWatcher {
 
             guard AXObserverCreate(pid, axCallback, &obs) == .success,
                   let observer = obs else {
-                print("[COTP] Failed to create AXObserver")
+                NSLog("[COTP] Failed to create AXObserver")
                 return
             }
 
             self.observer = observer
             let appElement = AXUIElementCreateApplication(pid)
 
+            var allOk = true
             for name in [
                 kAXWindowCreatedNotification,
                 kAXFocusedUIElementChangedNotification,
                 kAXValueChangedNotification,
             ] as [String] {
-                AXObserverAddNotification(observer, appElement, name as CFString, refcon)
+                let err = AXObserverAddNotification(observer, appElement, name as CFString, refcon)
+                if err != .success {
+                    NSLog("[COTP] Failed to add %@: error %d", name, err.rawValue)
+                    allOk = false
+                }
             }
 
             CFRunLoopAddSource(
@@ -48,12 +53,16 @@ final class NotificationWatcher {
                 AXObserverGetRunLoopSource(observer),
                 .commonModes
             )
-            print("[COTP] Watching for notifications…")
+            NSLog("[COTP] Watching for notifications… (subscriptions ok: %@)", allOk ? "YES" : "NO")
             CFRunLoopRun()
         }
     }
 
-    fileprivate func handleAXEvent(element: AXUIElement) {
+    fileprivate func handleAXEvent(element: AXUIElement, notification: String) {
+        #if DEBUG
+        NSLog("[COTP] AX event: %@", notification)
+        #endif
+
         // Check suppression window (prevents reacting to our own notification)
         lock.lock()
         let suppressed = Date() < suppressUntil
@@ -64,6 +73,9 @@ final class NotificationWatcher {
         var texts: [String] = []
         collectTexts(from: element, into: &texts, depth: 0)
         let combined = texts.joined(separator: " ")
+        #if DEBUG
+        NSLog("[COTP] Text: %@", combined.prefix(200).description)
+        #endif
 
         // Skip our own notifications
         if combined.contains("COTP") { return }
@@ -118,5 +130,5 @@ private func axCallback(
 ) {
     guard let refcon = refcon else { return }
     let watcher = Unmanaged<NotificationWatcher>.fromOpaque(refcon).takeUnretainedValue()
-    watcher.handleAXEvent(element: element)
+    watcher.handleAXEvent(element: element, notification: notification as String)
 }

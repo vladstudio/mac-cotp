@@ -1,3 +1,4 @@
 .build/
 COTP.app/
 .swiftpm/
+Resources/AppIcon.icns
