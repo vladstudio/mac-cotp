@@ -29,6 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenuItem = NSMenuItem(title: "Status: starting…", action: #selector(openAccessibility), keyEquivalent: "")
         statusMenuItem.target = self
         menu.addItem(statusMenuItem)
+        let aboutItem = NSMenuItem(title: "About COTP", action: #selector(openAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         statusItem.menu = menu
@@ -59,6 +62,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.onOTPDetected(otp)
         }
         watcher?.start()
+    }
+
+    @objc private func openAbout() {
+        NSWorkspace.shared.open(URL(string: "https://cotp.vlad.studio")!)
     }
 
     @objc private func openAccessibility() {
