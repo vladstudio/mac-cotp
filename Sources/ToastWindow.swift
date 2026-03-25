@@ -7,7 +7,7 @@ final class ToastWindow {
     func show(code: String) {
         hide()
 
-        guard let screen = NSScreen.main else { return }
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
 
         let width: CGFloat = 220
         let height: CGFloat = 36
@@ -48,13 +48,8 @@ final class ToastWindow {
         ])
 
         panel.contentView = bg
-        panel.alphaValue = 0
         panel.orderFrontRegardless()
-
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.15
-            panel.animator().alphaValue = 1
-        }
+        panel.alphaValue = 1
 
         self.panel = panel
         hideTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] _ in
