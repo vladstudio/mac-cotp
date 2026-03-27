@@ -57,6 +57,9 @@ enum OTPParser {
         return nil
     }
 
+    /// Filters out common false positives that look like OTPs but aren't.
+    /// - Years (1900-2100): Prevents dates being detected as codes
+    /// - Round thousands (1000, 2000, etc.): Prevents generic numbers being detected
     private static func isFalsePositive(_ s: String) -> Bool {
         guard let n = Int(s) else { return false }
         if (1900...2100).contains(n) { return true }

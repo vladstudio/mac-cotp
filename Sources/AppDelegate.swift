@@ -73,11 +73,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openAbout() {
-        NSWorkspace.shared.open(URL(string: "https://cotp.vlad.studio")!)
+        if let url = URL(string: "https://cotp.vlad.studio") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func openAccessibility() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility")!)
+        let urlString = "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     @objc private func toggleLoginItem() {
@@ -88,7 +93,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 try service.register()
             }
-        } catch {}
+        } catch {
+            NSLog("[COTP] Failed to toggle login item: \(error)")
+            let alert = NSAlert()
+            alert.messageText = "Failed to change login item settings"
+            alert.informativeText = error.localizedDescription
+            alert.alertStyle = .warning
+            alert.runModal()
+        }
         loginItem.state = service.status == .enabled ? .on : .off
     }
 

@@ -16,7 +16,7 @@ Builds release binary via SPM, assembles .app bundle with icons, codesigns, inst
 - `Sources/AppDelegate.swift` — menu bar, accessibility permission flow, clipboard
 - `Sources/NotificationWatcher.swift` — AXObserver on com.apple.notificationcenterui, text extraction
 - `Sources/OTPParser.swift` — keyword-gated regex detection for digit/alpha OTP patterns
-- `Sources/ToastWindow.swift` — HUD-style floating panel for visual feedback
+- Uses macOS notification center for visual feedback (not a custom toast window)
 
 ## Key details
 
