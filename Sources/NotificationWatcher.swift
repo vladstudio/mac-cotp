@@ -78,7 +78,7 @@ final class NotificationWatcher {
         #endif
 
         // Skip our own notifications
-        if combined.contains("COTP") { return }
+        if combined.contains("COTP") || combined.contains("Copied:") { return }
 
         guard let code = OTPParser.detect(in: combined) else { return }
 
